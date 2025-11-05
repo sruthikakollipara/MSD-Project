@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | Rhythm Moves</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* Admin-specific styles that extend the main theme */
+    body {
+      background: var(--light);
+      min-height: 100vh;
+    }
+
+    .admin-wrapper {
+      padding-top: 100px; /* Account for fixed navbar */
+      min-height: 100vh;
+    }
+
+    .admin-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: var(--white);
+      border-radius: var(--border-radius-xl);
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 2rem;
+    }
+
+    .login-container {
+      max-width: 450px;
+      margin: 10vh auto;
+      padding: 3rem;
+      background: var(--white);
+      border-radius: var(--border-radius-xl);
+      box-shadow: var(--shadow-xl);
+      text-align: center;
+      border: 1px solid var(--gray-200);
+    }
+
+    .login-header {
+      margin-bottom: 2rem;
+    }
+
+    .login-header .login-icon {
+      width: 4rem;
+      height: 4rem;
+      background: var(--gradient-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      color: var(--white);
+      font-size: 1.5rem;
+    }
+
+    .login-header h2 {
+      color: var(--dark);
+      margin-bottom: 0.5rem;
+    }
+
+    .login-header p {
+      color: var(--gray-600);
+      font-size: 0.875rem;
+    }
+
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 2px solid var(--gray-200);
+      position: relative;
+    }
+
+    .admin-header::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100px;
+      height: 2px;
+      background: var(--gradient-primary);
+      border-radius: 1px;
+    }
+
+    .admin-title {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .admin-title .admin-icon {
+      width: 3rem;
+      height: 3rem;
+      background: var(--gradient-primary);
+      border-radius: var(--border-radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--white);
+      font-size: 1.25rem;
+    }
+
+    .admin-title h1 {
+      color: var(--dark);
+      margin: 0;
+      font-size: 2rem;
+    }
+
+    .admin-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--gradient-secondary);
+      color: var(--white);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-md);
+    }
+
+    .refresh-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .refresh-btn:active {
+      transform: translateY(0);
+    }
+
+    .refresh-btn.loading {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .refresh-btn.loading i {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .stats-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background: var(--white);
+      padding: 2rem;
+      border-radius: var(--border-radius-xl);
+      border: 1px solid var(--gray-200);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--gradient-primary);
+    }
+
+    .stat-card:nth-child(2)::before {
+      background: var(--gradient-secondary);
+    }
+
+    .stat-card:nth-child(3)::before {
+      background: linear-gradient(135deg, #10B981, #059669);
+    }
+
+    .stat-card:nth-child(4)::before {
+      background: linear-gradient(135deg, #EF4444, #DC2626);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .stat-icon {
+      width: 3rem;
+      height: 3rem;
+      background: var(--gray-100);
+      border-radius: var(--border-radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-color);
+      font-size: 1.25rem;
+    }
+
+    .stat-card:nth-child(2) .stat-icon {
+      color: var(--secondary-color);
+    }
+
+    .stat-card:nth-child(3) .stat-icon {
+      color: #10B981;
+    }
+
+    .stat-card:nth-child(4) .stat-icon {
+      color: #EF4444;
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--dark);
+      font-family: var(--font-heading);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      color: var(--gray-600);
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .stat-change {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      margin-top: 0.5rem;
+    }
+
+    .bookings-section {
+      background: var(--white);
+      border-radius: var(--border-radius-xl);
+      border: 1px solid var(--gray-200);
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--gray-200);
+      background: var(--gray-50);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 0;
+      color: var(--dark);
+      font-size: 1.25rem;
+    }
+
+    .bookings-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .bookings-table th,
+    .bookings-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-200);
+      font-size: 0.875rem;
+    }
+
+    .bookings-table th {
+      background: var(--gray-50);
+      color: var(--dark);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+
+    .bookings-table tr:hover {
+      background: var(--gray-50);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.375rem 0.75rem;
+      border-radius: 2rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-pending {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .status-confirmed {
+      background: #D1FAE5;
+      color: #065F46;
+    }
+
+    .status-cancelled {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-confirm,
+    .btn-cancel {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .btn-confirm {
+      background: #10B981;
+      color: var(--white);
+    }
+
+    .btn-confirm:hover:not(:disabled) {
+      background: #059669;
+      transform: translateY(-1px);
+    }
+
+    .btn-cancel {
+      background: #EF4444;
+      color: var(--white);
+    }
+
+    .btn-cancel:hover:not(:disabled) {
+      background: #DC2626;
+      transform: translateY(-1px);
+    }
+
+    .btn-confirm:disabled,
+    .btn-cancel:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .nav-admin {
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--gray-200);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+    }
+
+    .nav-admin .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .nav-admin .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--primary-color);
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .nav-admin .logo i {
+      font-size: 1.75rem;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .nav-admin .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .nav-admin .back-link {
+      color: var(--gray-600);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.3s ease;
+    }
+
+    .nav-admin .back-link:hover {
+      color: var(--primary-color);
+    }
+
+    .logout-btn {
+      background: var(--gray-600);
+      color: var(--white);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logout-btn:hover {
+      background: var(--gray-700);
+      transform: translateY(-1px);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--gray-500);
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 2rem;
+      height: 2rem;
+      border: 3px solid var(--gray-300);
+      border-top: 3px solid var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    .message {
+      padding: 1rem 1.5rem;
+      margin: 1rem 0;
+      border-radius: var(--border-radius);
+      text-align: center;
+      font-weight: 500;
+      border: 1px solid;
+    }
+
+    .message.success {
+      background: #F0FDF4;
+      color: #166534;
+      border-color: #BBF7D0;
+    }
+
+    .message.error {
+      background: #FEF2F2;
+      color: #991B1B;
+      border-color: #FECACA;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--gray-500);
+    }
+
+    .empty-state i {
+      font-size: 4rem;
+      color: var(--gray-300);
+      margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+      color: var(--gray-600);
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+      color: var(--gray-500);
+      font-size: 0.875rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .admin-container {
+        margin: 1rem;
+        padding: 1.5rem;
+      }
+
+      .admin-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+      }
+
+      .admin-actions {
+        justify-content: center;
+      }
+
+      .stats-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .bookings-table {
+        font-size: 0.75rem;
+      }
+
+      .bookings-table th,
+      .bookings-table td {
+        padding: 0.75rem 0.5rem;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+      }
+
+      .nav-admin .nav-container {
+        padding: 0.75rem 1rem;
+      }
+
+      .nav-admin .logo {
+        font-size: 1.25rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        margin: 5vh 1rem;
+        padding: 2rem 1.5rem;
+      }
+
+      .admin-wrapper {
+        padding-top: 80px;
+      }
+    }
+
+    .bookings-table th {
+      background-color: #ff6b6b;
+      color: white;
+      font-weight: 600;
+    }
+
+    .bookings-table tr:hover {
+      background-color: #f5f5f5;
+    }
+
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-pending {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    .status-confirmed {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .status-cancelled {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-confirm {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .btn-cancel {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .btn-confirm:hover {
+      background-color: #218838;
+    }
+
+    .btn-cancel:hover {
+      background-color: #c82333;
+    }
+
+    .btn-confirm:disabled,
+    .btn-cancel:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .logout-btn {
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .stats-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #ff6b6b, #ffa500);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+    }
+
+    .message {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    </style>
+</head>
+<body>
+  <!-- Login Form -->
+  <div id="loginContainer" class="login-container">
+    <div class="login-header">
+      <div class="login-icon">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+      <h2>Admin Login</h2>
+      <p>Enter your credentials to access the admin dashboard</p>
+    </div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="adminPassword">Admin Password</label>
+        <input type="password" id="adminPassword" placeholder="Enter admin password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg">
+        <i class="fas fa-sign-in-alt"></i>
+        Login
+      </button>
+    </form>
+    <div id="loginMessage" class="message" style="display: none;"></div>
+  </div>
+
+  <!-- Admin Panel -->
+  <div id="adminPanel" class="hidden">
+    <!-- Enhanced Navigation -->
+    <nav class="nav-admin">
+      <div class="nav-container">
+        <a href="index.html" class="logo">
+          <i class="fas fa-music"></i>
+          <span>Rhythm Moves</span>
+          <span style="font-size: 0.75rem; color: var(--gray-500);">Admin</span>
+        </a>
+        <div class="nav-actions">
+          <a href="index.html" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Back to Site
+          </a>
+          <button class="logout-btn" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i>
+            Logout
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="admin-wrapper">
+      <div class="admin-container">
+        <!-- Enhanced Header -->
+        <div class="admin-header">
+          <div class="admin-title">
+            <div class="admin-icon">
+              <i class="fas fa-chart-bar"></i>
+            </div>
+            <h1>Admin Dashboard</h1>
+          </div>
+          <div class="admin-actions">
+            <button class="refresh-btn" onclick="refreshBookings()" id="refreshBtn">
+              <i class="fas fa-sync-alt"></i>
+              Refresh Data
+            </button>
+          </div>
+        </div>
+
+        <!-- Enhanced Statistics Cards -->
+        <div class="stats-cards">
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon">
+                <i class="fas fa-calendar-alt"></i>
+              </div>
+            </div>
+            <div class="stat-number" id="totalBookings">0</div>
+            <div class="stat-label">Total Bookings</div>
+            <div class="stat-change">All time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+              </div>
+            </div>
+            <div class="stat-number" id="pendingBookings">0</div>
+            <div class="stat-label">Pending</div>
+            <div class="stat-change">Awaiting approval</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+              </div>
+            </div>
+            <div class="stat-number" id="confirmedBookings">0</div>
+            <div class="stat-label">Confirmed</div>
+            <div class="stat-change">Ready to dance</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon">
+                <i class="fas fa-times-circle"></i>
+              </div>
+            </div>
+            <div class="stat-number" id="cancelledBookings">0</div>
+            <div class="stat-label">Cancelled</div>
+            <div class="stat-change">Not attending</div>
+          </div>
+        </div>
+
+        <!-- Message Area -->
+        <div id="adminMessage" class="message" style="display: none;"></div>
+
+        <!-- Enhanced Bookings Section -->
+        <div class="bookings-section">
+          <div class="section-header">
+            <h3 class="section-title">
+              <i class="fas fa-list-alt"></i>
+              Recent Bookings
+            </h3>
+          </div>
+
+          <!-- Loading State -->
+          <div id="loadingBookings" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading bookings...</p>
+          </div>
+
+          <!-- Empty State -->
+          <div id="emptyState" class="empty-state hidden">
+            <i class="fas fa-calendar-times"></i>
+            <h3>No bookings yet</h3>
+            <p>Bookings will appear here once customers start booking classes.</p>
+          </div>
+          
+          <!-- Bookings Table -->
+          <table id="bookingsTable" class="bookings-table hidden">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Student</th>
+                <th>Contact</th>
+                <th>Dance Style</th>
+                <th>Schedule</th>
+                <th>Notes</th>
+                <th>Status</th>
+                <th>Booked On</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bookingsTableBody">
+              <!-- Bookings will be loaded here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Supabase
+    const SUPABASE_URL = "https://ogrtyqkhqqwbnwjpvxkx.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ncnR5cWtocXF3Ym53anB2eGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzMzY4MjcsImV4cCI6MjA3NzkxMjgyN30.dyfZmRwYC9DPLN3gXsUqLLxyY2C1ykQRfkToZexUsF8";
+    
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Gmail configuration
+    const GMAIL_CONFIG = {
+      smtpServer: 'smtp.gmail.com',
+      port: 587,
+      // Note: For security, you'll need to set up a backend service
+      // Direct Gmail from frontend is not secure
+    };
+
+    // Simple admin authentication
+    const ADMIN_PASSWORD = "admin123"; // Change this to a secure password
+
+    // DOM elements
+    const loginContainer = document.getElementById('loginContainer');
+    const adminPanel = document.getElementById('adminPanel');
+    const loginForm = document.getElementById('loginForm');
+    const loginMessage = document.getElementById('loginMessage');
+    const adminMessage = document.getElementById('adminMessage');
+    const loadingBookings = document.getElementById('loadingBookings');
+    const bookingsTable = document.getElementById('bookingsTable');
+    const bookingsTableBody = document.getElementById('bookingsTableBody');
+
+    // Statistics elements
+    const totalBookingsEl = document.getElementById('totalBookings');
+    const pendingBookingsEl = document.getElementById('pendingBookings');
+    const confirmedBookingsEl = document.getElementById('confirmedBookings');
+    const cancelledBookingsEl = document.getElementById('cancelledBookings');
+
+    // Check if admin is already logged in
+    if (localStorage.getItem('adminLoggedIn') === 'true') {
+      showAdminPanel();
+    }
+
+    // Login form handler
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const password = document.getElementById('adminPassword').value;
+      
+      if (password === ADMIN_PASSWORD) {
+        localStorage.setItem('adminLoggedIn', 'true');
+        showAdminPanel();
+      } else {
+        showLoginMessage('Invalid password', 'error');
+      }
+    });
+
+    function showLoginMessage(message, type = 'error') {
+      loginMessage.textContent = message;
+      loginMessage.className = `message ${type}`;
+      loginMessage.style.display = 'block';
+    }
+
+    function showAdminMessage(message, type = 'success') {
+      adminMessage.textContent = message;
+      adminMessage.className = `message ${type}`;
+      adminMessage.style.display = 'block';
+      setTimeout(() => {
+        adminMessage.style.display = 'none';
+      }, 5000);
+    }
+
+    function showAdminPanel() {
+      loginContainer.classList.add('hidden');
+      adminPanel.classList.remove('hidden');
+      loadBookings();
+    }
+
+    function logout() {
+      localStorage.removeItem('adminLoggedIn');
+      location.reload();
+    }
+
+    async function loadBookings() {
+      try {
+        loadingBookings.style.display = 'block';
+        bookingsTable.classList.add('hidden');
+
+        const { data: bookings, error } = await supabaseClient
+          .from('bookings')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        displayBookings(bookings);
+        updateStatistics(bookings);
+        
+        loadingBookings.style.display = 'none';
+        bookingsTable.classList.remove('hidden');
+      } catch (error) {
+        console.error('Error loading bookings:', error);
+        showAdminMessage('Failed to load bookings', 'error');
+        loadingBookings.style.display = 'none';
+      }
+    }
+
+    function displayBookings(bookings) {
+      bookingsTableBody.innerHTML = '';
+      
+      if (bookings.length === 0) {
+        document.getElementById('emptyState').classList.remove('hidden');
+        bookingsTable.classList.add('hidden');
+        return;
+      }
+
+      document.getElementById('emptyState').classList.add('hidden');
+      
+      bookings.forEach(booking => {
+        const row = document.createElement('tr');
+        const statusClass = booking.booking_status || 'pending';
+        const statusText = (booking.booking_status || 'pending').charAt(0).toUpperCase() + (booking.booking_status || 'pending').slice(1);
+        
+        // Format date and time for better display
+        const bookingDate = new Date(booking.date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+        
+        const createdDate = new Date(booking.created_at).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        row.innerHTML = `
+          <td><span style="font-weight: 600; color: var(--primary-color);">#${booking.id}</span></td>
+          <td>
+            <div style="font-weight: 500; color: var(--dark);">${booking.name}</div>
+          </td>
+          <td>
+            <div style="font-size: 0.75rem; color: var(--gray-600);">${booking.email}</div>
+            <div style="font-size: 0.75rem; color: var(--gray-600);">${booking.phone}</div>
+          </td>
+          <td>
+            <span style="background: var(--gradient-light); color: var(--white); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 500;">
+              ${booking.dance_style}
+            </span>
+          </td>
+          <td>
+            <div style="font-weight: 500; color: var(--dark);">${bookingDate}</div>
+            <div style="font-size: 0.75rem; color: var(--gray-600);">${booking.time}</div>
+          </td>
+          <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">
+            ${booking.notes ? `<span style="font-size: 0.75rem; color: var(--gray-600);">${booking.notes}</span>` : '<span style="color: var(--gray-400);">-</span>'}
+          </td>
+          <td><span class="status-badge status-${statusClass}">${statusText}</span></td>
+          <td style="font-size: 0.75rem; color: var(--gray-600);">${createdDate}</td>
+          <td>
+            <div class="action-buttons">
+              <button class="btn-confirm" onclick="confirmBooking(${booking.id}, '${booking.email}', '${booking.name}')" ${booking.booking_status === 'confirmed' ? 'disabled' : ''}>
+                <i class="fas fa-check"></i>
+                Confirm
+              </button>
+              <button class="btn-cancel" onclick="cancelBooking(${booking.id}, '${booking.email}', '${booking.name}')" ${booking.booking_status === 'cancelled' ? 'disabled' : ''}>
+                <i class="fas fa-times"></i>
+                Cancel
+              </button>
+            </div>
+          </td>
+        `;
+        
+        bookingsTableBody.appendChild(row);
+      });
+    }
+
+    function updateStatistics(bookings) {
+      const total = bookings.length;
+      const pending = bookings.filter(b => !b.booking_status || b.booking_status === 'pending').length;
+      const confirmed = bookings.filter(b => b.booking_status === 'confirmed').length;
+      const cancelled = bookings.filter(b => b.booking_status === 'cancelled').length;
+
+      totalBookingsEl.textContent = total;
+      pendingBookingsEl.textContent = pending;
+      confirmedBookingsEl.textContent = confirmed;
+      cancelledBookingsEl.textContent = cancelled;
+    }
+
+    async function confirmBooking(bookingId, userEmail, userName) {
+      try {
+        // Show loading state on button
+        const confirmBtn = event.target.closest('.btn-confirm');
+        const originalContent = confirmBtn.innerHTML;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirming...';
+        confirmBtn.disabled = true;
+
+        // Update booking status in database
+        const { error } = await supabaseClient
+          .from('bookings')
+          .update({ booking_status: 'confirmed' })
+          .eq('id', bookingId);
+
+        if (error) throw error;
+
+        // Send confirmation email
+        await sendEmail(userEmail, userName, 'confirmed');
+        
+        showAdminMessage(`✅ Booking #${bookingId} confirmed! Email notification prepared for ${userName}.`, 'success');
+        
+        // Add success animation
+        confirmBtn.style.background = '#10B981';
+        confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmed';
+        
+        setTimeout(() => {
+          refreshBookings();
+        }, 1500);
+      } catch (error) {
+        console.error('Error confirming booking:', error);
+        showAdminMessage('❌ Failed to confirm booking. Please try again.', 'error');
+        
+        // Reset button state
+        const confirmBtn = event.target.closest('.btn-confirm');
+        confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm';
+        confirmBtn.disabled = false;
+      }
+    }
+
+    async function cancelBooking(bookingId, userEmail, userName) {
+      // Add confirmation dialog
+      if (!confirm(`Are you sure you want to cancel booking #${bookingId} for ${userName}?`)) {
+        return;
+      }
+
+      try {
+        // Show loading state on button
+        const cancelBtn = event.target.closest('.btn-cancel');
+        const originalContent = cancelBtn.innerHTML;
+        cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling...';
+        cancelBtn.disabled = true;
+
+        // Update booking status in database
+        const { error } = await supabaseClient
+          .from('bookings')
+          .update({ booking_status: 'cancelled' })
+          .eq('id', bookingId);
+
+        if (error) throw error;
+
+        // Send cancellation email
+        await sendEmail(userEmail, userName, 'cancelled');
+        
+        showAdminMessage(`🚫 Booking #${bookingId} cancelled. Email notification prepared for ${userName}.`, 'success');
+        
+        // Add cancel animation
+        cancelBtn.style.background = '#EF4444';
+        cancelBtn.innerHTML = '<i class="fas fa-times"></i> Cancelled';
+        
+        setTimeout(() => {
+          refreshBookings();
+        }, 1500);
+      } catch (error) {
+        console.error('Error cancelling booking:', error);
+        showAdminMessage('❌ Failed to cancel booking. Please try again.', 'error');
+        
+        // Reset button state
+        const cancelBtn = event.target.closest('.btn-cancel');
+        cancelBtn.innerHTML = '<i class="fas fa-times"></i> Cancel';
+        cancelBtn.disabled = false;
+      }
+    }
+
+    async function sendEmail(userEmail, userName, status) {
+      try {
+        // Enhanced email templates
+        const templates = {
+          confirmed: {
+            subject: `✅ Booking Confirmed - Rhythm Moves Dance Studio`,
+            body: `Hi ${userName},
+
+🎉 Fantastic news! Your dance class booking has been confirmed.
+
+📋 Booking Details:
+• Status: CONFIRMED ✅
+• Studio: Rhythm Moves Dance Studio
+• Location: 123 Dance Street, Hyderabad, India
+
+📞 Contact Information:
+• Phone: +91 98765 43210
+• Email: rhythmstudio@gmail.com
+
+💡 What to Bring:
+• Comfortable workout clothes
+• Water bottle
+• Positive energy and enthusiasm!
+
+We're excited to see you dance with us! If you have any questions or need to make changes, please don't hesitate to contact us.
+
+See you on the dance floor! 💃🕺
+
+Best regards,
+The Rhythm Moves Team
+🌟 Where passion meets movement 🌟`
+          },
+          cancelled: {
+            subject: `❌ Booking Cancelled - Rhythm Moves Dance Studio`,
+            body: `Hi ${userName},
+
+We regret to inform you that your dance class booking has been cancelled.
+
+📋 Booking Details:
+• Status: CANCELLED ❌
+• Studio: Rhythm Moves Dance Studio
+
+📞 Contact Us:
+If you have any questions about this cancellation or would like to reschedule, please contact us:
+• Phone: +91 98765 43210
+• Email: rhythmstudio@gmail.com
+
+We'd love to help you find another suitable time slot. Please don't hesitate to book again when you're ready!
+
+Thank you for your understanding.
+
+Best regards,
+The Rhythm Moves Team
+🌟 We hope to see you dancing with us soon 🌟`
+          }
+        };
+
+        const template = templates[status];
+        const mailtoLink = `mailto:${userEmail}?subject=${encodeURIComponent(template.subject)}&body=${encodeURIComponent(template.body)}`;
+        
+        // Open email client
+        window.open(mailtoLink);
+        
+        // Also copy to clipboard for convenience
+        if (navigator.clipboard) {
+          const emailContent = `To: ${userEmail}\nSubject: ${template.subject}\n\n${template.body}`;
+          await navigator.clipboard.writeText(emailContent);
+          console.log('Email content copied to clipboard');
+        }
+        
+        return true;
+      } catch (error) {
+        console.error('Error preparing email:', error);
+        throw new Error('Failed to prepare email notification');
+      }
+    }
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // Ctrl+R or F5 to refresh
+      if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
+        e.preventDefault();
+        refreshBookings();
+      }
+      
+      // Escape to logout
+      if (e.key === 'Escape' && !loginContainer.classList.contains('hidden')) {
+        logout();
+      }
+    });
+
+    // Auto-refresh every 30 seconds
+    let autoRefreshInterval;
+    
+    function startAutoRefresh() {
+      autoRefreshInterval = setInterval(() => {
+        if (!document.hidden) { // Only refresh if tab is visible
+          loadBookings();
+        }
+      }, 30000); // 30 seconds
+    }
+    
+    function stopAutoRefresh() {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+      }
+    }
+
+    // Start auto-refresh when admin panel is shown
+    function showAdminPanel() {
+      loginContainer.classList.add('hidden');
+      adminPanel.classList.remove('hidden');
+      loadBookings();
+      startAutoRefresh();
+    }
+
+    // Stop auto-refresh on logout
+    function logout() {
+      stopAutoRefresh();
+      localStorage.removeItem('adminLoggedIn');
+      location.reload();
+    }
+
+    // Handle page visibility change
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        stopAutoRefresh();
+      } else if (!adminPanel.classList.contains('hidden')) {
+        startAutoRefresh();
+        // Refresh data when coming back to tab
+        loadBookings();
+      }
+    });
+
+    // Enhanced error logging
+    window.addEventListener('error', function(e) {
+      console.error('Global error:', e.error);
+      showAdminMessage('An unexpected error occurred. Please refresh the page.', 'error');
+    });
+
+    // Show loading message on page load
+    if (localStorage.getItem('adminLoggedIn') === 'true') {
+      showAdminPanel();
+    } else {
+      // Add some animation to login form
+      setTimeout(() => {
+        loginContainer.style.opacity = '1';
+        loginContainer.style.transform = 'translateY(0)';
+      }, 100);
+    }
+
+    // Add enhanced loading and error handling
+    async function loadBookings() {
+      try {
+        loadingBookings.style.display = 'block';
+        bookingsTable.classList.add('hidden');
+        document.getElementById('emptyState').classList.add('hidden');
+
+        const { data: bookings, error } = await supabaseClient
+          .from('bookings')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        displayBookings(bookings);
+        updateStatistics(bookings);
+        
+        loadingBookings.style.display = 'none';
+        bookingsTable.classList.remove('hidden');
+        
+        // Show success message for manual refresh
+        if (document.getElementById('refreshBtn').classList.contains('loading')) {
+          showAdminMessage('Bookings refreshed successfully!', 'success');
+        }
+      } catch (error) {
+        console.error('Error loading bookings:', error);
+        showAdminMessage('Failed to load bookings. Please try again.', 'error');
+        loadingBookings.style.display = 'none';
+        
+        // Show empty state on error
+        document.getElementById('emptyState').classList.remove('hidden');
+      }
+    }
+  </script>
+</body>
+</html>
